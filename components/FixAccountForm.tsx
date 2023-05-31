@@ -25,7 +25,7 @@ export default function FixAccountForm() {
     if (!hexPubKey || !ndk) return;
     setIsFixing(true);
     const user = ndk?.getUser({
-      npub: "npub1u8ksddqc6jry363g3dh2tsx2s5kluq2yuhumvwd5gawv2rja03zqk5a2jn",
+      hexpubkey: hexPubKey,
     });
     if (user) {
       user.follows().then(async (follows) => {
