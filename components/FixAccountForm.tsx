@@ -1,8 +1,8 @@
 "use client";
 import { useNDK } from "@/nostr/NDKProvider";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { nip19, getPublicKey } from "nostr-tools";
-import { NDKEvent } from "@nostr-dev-kit/ndk";
+import { NDKEvent, NDKPrivateKeySigner } from "@nostr-dev-kit/ndk";
 
 export default function FixAccountForm() {
   const { ndk } = useNDK();
@@ -30,13 +30,14 @@ export default function FixAccountForm() {
     if (user) {
       user.follows().then(async (follows) => {
         if (follows.size > 0) {
-          const event = new NDKEvent(ndk);
+          let event = new NDKEvent(ndk);
           event.kind = 3;
           follows.forEach((follow) => {
             if (follow.hexpubkey()) {
               event.tags.push(["p", follow.hexpubkey(), ""]);
             }
           });
+          await event.sign(ndk.signer);
           await ndk.publish(event);
           setIsFixed(true);
           setIsFixing(false);
@@ -48,6 +49,15 @@ export default function FixAccountForm() {
       setIsFixing(false);
     }
   };
+
+  useEffect(() => {
+    if (ndk && hexPubKey) {
+      const { type, data } = nip19.decode(nsec);
+      if (type === "nsec") {
+        ndk.signer = new NDKPrivateKeySigner(data as string);
+      }
+    }
+  }, [nsec]);
 
   return (
     <div className="flex gap-4 mt-4">
@@ -61,9 +71,13 @@ export default function FixAccountForm() {
       {isFixing ? (
         <span className="p-2">FIXING...</span>
       ) : isFixed ? (
-        <span className="text-green-500 p-2">FIXED</span>
+        <span className="text-fuchsia-500 p-2">FIXED</span>
       ) : (
-        <button className="p-2 bg-slate-800" onClick={handleSubmit}>
+        <button
+          className="p-2 bg-fuchsia-500 disabled:bg-fuchsia-200"
+          onClick={handleSubmit}
+          disabled={!hexPubKey}
+        >
           FIX ACCOUNT
         </button>
       )}
